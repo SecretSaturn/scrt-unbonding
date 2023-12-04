@@ -5,6 +5,17 @@ import { Chart, ChartItem, registerables } from "chart.js";
 import fs from "fs";
 import "dotenv/config";
 
+import express from 'express';
+
+const app = express();
+const port = 3000;
+
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
+});
+
+app.use(express.static('public'));
+
 Chart.register(...registerables);
 Chart.defaults.color = "white";
 Chart.defaults.font.weight = "500";
@@ -28,7 +39,7 @@ async function getTotalUnbonding() {
   const startTime = performance.now();
 
   const client = new SecretNetworkClient({
-    url: "https://lcd.secret.express",
+    url: "https://lcd.mainnet.secretsaturn.net",
     chainId: "secret-4",
   });
   console.log(`Initialized read-only client.`);
@@ -91,7 +102,7 @@ async function getTotalUnbonding() {
 
       totalUnbonding += balance;
 
-      console.log();
+
       console.log(
         validatorName,
         Math.floor(balance / 1000000).toLocaleString()
@@ -118,7 +129,7 @@ async function getTotalUnbonding() {
   const jsonData = JSON.stringify(unbondingResponsesObject, null, 2);
 
   // Save the JSON string to a file
-  fs.writeFileSync("unbonding.json", jsonData, "utf8");
+  fs.writeFileSync("public/unbonding.json", jsonData, "utf8");
 
   const endTime = performance.now();
   const totalTime = (endTime - startTime) / 1000;
@@ -129,8 +140,8 @@ async function createChart() {
   const { Chart } = await import("chart.js");
 
   // Set up the virtual canvas
-  const width = 800; // Width of the canvas
-  const height = 400; // Height of the canvas
+  const width = 1000; // Width of the canvas
+  const height = 800; // Height of the canvas
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d") as unknown as ChartItem;
 
@@ -145,15 +156,15 @@ async function createChart() {
   }
 
   // Fetch the JSON file
-  const filePath = "unbonding.json";
+  const filePath = "public/unbonding.json";
   const fileContent = fs.readFileSync(filePath, "utf-8");
   const balancesData = JSON.parse(fileContent);
 
   const groupedData: GroupedData[] = Object.values(balancesData).flatMap(
     (entries: unknown) =>
       (entries as BalancesData[]).map(({ completion_time, balance }) => ({
-        date: new Date(completion_time).toLocaleDateString(),
-        balance: parseInt(balance) / 1000000,
+        date: new Date(completion_time).toDateString(),
+        balance: Number(balance) / 1000000,
       }))
   );
 
@@ -179,11 +190,12 @@ async function createChart() {
   );
 
   // Extract the dates and balances
-  const labels: string[] = sortedData.map(([date]) => {
+  const labels = sortedData.map(([date]) => {
     const dateObj = new Date(date);
-    const day = dateObj.getDate().toString().padStart(2, "0");
-    const month = (dateObj.getMonth() + 1).toString().padStart(2, "0");
-    return `${month}/${day}`;
+    return dateObj.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit'
+    });
   });
 
   const datasets = [

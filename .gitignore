@@ -3,3 +3,7 @@ package-lock.json
 output.log
 .env
 dist/
+unbonding.json
+chart.png
+.DS_Store
+unbonding.json
